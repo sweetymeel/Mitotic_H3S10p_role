@@ -10,6 +10,3 @@ Abstract: Mitotic chromosomes lose interphase-specific genome organization and t
 6.	Chromatin compaction in A domains and TADs
 7.	Analysis and visualisation of ChIP-seq, RNA-seq and ATAC-seq
 8.	Chromosome compaction in metaphase spreads
-[details_4-8.txt](https://github.com/user-attachments/files/20826820/details_4-8.txt)
-[code_2_image_analysis.txt](https://github.com/user-attachments/files/20826819/code_2_image_analysis.txt)
-[code_1_region_calling.txt](https://github.com/user-attachments/files/20826818/code_1_region_calling.txt)
