@@ -1,0 +1,84 @@
+# Performed by Sachin Mishra
+# Calling of H3S10p regions and domains (Fig. 1, S1)
+
+#importing packages
+import pandas as pd
+import numpy as np
+
+# reading mapbed output. columns 3 and 4 are DMSO and Nocodazole mapped h3s10p signals
+sw = pd.read_csv('sw_1kb_250bpsteps_h3s10p_dn_mapped.bed', sep='\t', header=None)
+
+# calculating slope of line connecting first and last points of curve.
+
+sw_odmso = sw.sort_values(by=3, ignore_index=True) #sorting bins based on increasing dmso or noco signal
+
+sw_onoco = sw.sort_values(by=4, ignore_index=True)
+
+# Using slope = (y2-y1)/(x2-x1) to find slope connecting minima and maxima of signal
+
+slope_dmso = (sw_odmso.iloc[-1][3] - sw_odmso.iloc[0][3]) / (sw_odmso.index[-1] - sw_odmso.index[0])
+slope_noco = (sw_onoco.iloc[-1][4] - sw_onoco.iloc[0][4]) / (sw_onoco.index[-1] - sw_onoco.index[0])
+
+# Iteratively reducing y-intercept of line with slope as calculated earlier, to find the first such line where all the points of the distribution are above said line
+flag = 0
+cdmso = -357 #this was done in recursive fashion manually. first the value of c was reduced in orders of 100, then starting value of the loop was reset to the smallest value not satisfying the condition, and the values were reduced in orders of 10, and so on until a "resolution" of 0.01
+
+while flag == 0:
+    condition = slope_dmso * sw_odmso.index + cdmso > sw_odmso.iloc[:, 3]
+    x_array = sw_odmso.index[condition].values
+    s = len(x_array)
+    cdmso = cdmso - 0.01
+    if s == 0:
+        flag += 1
+print(cdmso)
+# cdmso = -358.25999999999885
+
+# finding point on the line y = (slope_dmso)*x + cdmso which is closest to the distribution of sw_odmso.
+
+x = sw_odmso.index.values
+y = sw_odmso.iloc[:, 3].values
+
+# Calculate the y-values of the final line using the slope and intercept
+final_line_y = slope_dmso * x + cdmso
+
+# Calculate the differences between the coordinates of point of inflection and distribution
+differences = np.abs(final_line_y - y)
+
+min_difference_index = np.argmin(differences)
+min_difference_x = x[min_difference_index]
+min_difference_y = y[min_difference_index]
+
+#outputting the differentially enriched bins to a bed file. this is to be sorted and merged with bedtools
+sw_odmso[sw_odmso[3] >= min_difference_y].to_csv('dmso_enriched_bins.bed', sep='\t', header=None, index=False)
+
+#repeating the same with nocodazole signal
+
+flag = 0
+cnoco = -346
+while flag == 0:
+    condition = slope_noco * sw_onoco.index + cnoco > sw_onoco.iloc[:, 4]
+    x_array = sw_onoco.index[condition].values
+    s = len(x_array)
+    cnoco = cnoco - 0.01
+    if s == 0:
+        flag += 1
+print(cnoco)
+# cn = -348.7499999999998
+
+
+x = sw_onoco.index.values
+y = sw_onoco.iloc[:, 4].values
+
+# Calculate the y-values of the final line using the slope and intercept
+final_line_y = slope_noco * x + cnoco
+
+# Calculate the differences between the coordinates of point of inflection and distribution
+differences = np.abs(final_line_y - y)
+
+min_difference_index = np.argmin(differences)
+min_difference_x = x[min_difference_index]
+min_difference_y = y[min_difference_index]
+
+
+#outputting the differentially enriched bins to a bed file. this is to be sorted and merged with bedtools
+sw_onoco[sw_onoco[4] >= min_difference_y].to_csv('noco_enriched_bins.bed', sep='\t', header=None, index=False)
