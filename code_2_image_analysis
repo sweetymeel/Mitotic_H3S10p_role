@@ -1,0 +1,83 @@
+# Performed by Rajat Mann
+# Image analysis for mean intensity (Fig. 4, S5)
+
+path = '/media/user/Elements/sweety_Analysis/12dec23/tiff_files/'; %%%%%File_Direcotry
+Parent_directory = '/media/user/Elements/sweety_Analysis/12dec23';
+cd(path)  %%%%%%%%%%%%%%%%%%Change the directories
+imagefiles=dir(pwd());%Gives the structure with info about all the files
+imagefiles=imagefiles([imagefiles(:).bytes]>0);
+nfiles = length(imagefiles); 
+answer{1}=3; %%%%%%%Number of Channels%%%%%%%
+answer{2}='C1'; %%%%%%%Channel_1_Name%%%%%%%%%%%%%
+answer{3}='C2';%%%%%%%Channel_2_Name%%%%%%%%%
+answer{4}='Hoechst';%%%%%%%Channel_3_Name%%%%%%%%%
+answer{5}=3; %%%%%%%%% Which Channel to use for Nuclear Segmentation %%%%%%%%%
+answer{7} = fullfile(Parent_directory,'Mask');
+answer{8} = fullfile(Parent_directory,'Analysis');
+answer{11}='C1'; %%%%Rep
+answer{12}='C2'; %%%%Rep
+dim = 3;%%%%%%%%% The Neighbour hood Matrix should vary According to the Size of the Nucleus%%%%%%%%
+[xx,yy,zz] = ndgrid(-dim:dim);
+nhood = sqrt(xx.^2 + yy.^2 + zz.^2) <= dim;
+answer{10}=1; %%%%Rep
+for ii = 1:nfiles
+fprintf("File name %s is being processed \n",imagefiles(ii).name);    
+
+currentfilename = imagefiles(ii).name; % getting one of the attribute name from the directory to get all the names of the images in the directory
+Col = char('A'+ii-1);
+Range = [Col,'1'];
+if ii >= 27    
+Temp = char('A'+ii-27);
+Col = sprintf('A%s',Temp);
+Range = [Col,'1'];
+end
+
+writematrix(currentfilename,sprintf('%s/%s.xlsx',answer{8},answer{11}),'Range',Range,'Sheet',answer{10});
+writematrix(currentfilename,sprintf('%s/%s.xlsx',answer{8},answer{12}),'Range',Range,'Sheet',answer{10});
+InfoImage = imfinfo(currentfilename);
+mImage = InfoImage(1).Width;
+nImage = InfoImage(1).Height;
+NumberImages = length(InfoImage);% all of this to calculate the image dimensions.
+Image_stack = zeros(nImage,mImage,NumberImages,'uint16');    
+    for k = 1:NumberImages
+        Image_stack(:,:,k)=imread(currentfilename,'Index',k); % for every single image replace with zeros with the particular image.
+    end
+[x,y,z] = size(Image_stack);
+scs = z/answer{1}; % Getting Size of single stack
+Channels = zeros(x,y,scs,answer{1},'uint16'); 
+%%%% For Channel Splitting %%%%%%%%%    
+    for i = 1:scs
+        for h = 1:answer{1}
+            Channels(:,:,i,h) = Image_stack(:,:,(answer{1}*(i-1))+h);
+        end
+    end
+%%%%%%%%%%%%%Nucleus Segmentation%%%%%%%%%%%%%%%%%%%%%%%
+Rescaled_Medfilt = Channels(:,:,:,answer{5});%%% Max of uint16
+Blur_Img = medfilt3(Rescaled_Medfilt,[3,3,1]);
+T = adaptthresh(Rescaled_Medfilt);%Otsu Thresholding%%%
+bin = imbinarize(Rescaled_Medfilt,T);
+Clear_binary = medfilt3(bin,[3 3 1],'symmetric');
+Nucleus_Mask_M = imfill(Clear_binary,'holes');
+new_Mask_N = bwareaopen(Nucleus_Mask_M,5000,18);
+
+Range2 = [Col,'2'];
+Final_Mask = zeros(x, y, scs+2,'uint16');
+Final_Mask(:,:,2:scs+1) = new_Mask_N;
+J = imclearborder(Final_Mask,18);
+Final_Nc = J(:,:,2:scs+1);
+Bin_Nc = imbinarize(Final_Nc, 0.5/65535);
+Bin_Nc = bwareaopen(Bin_Nc,3000,18);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%% Saving Mask%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+for iter = 1:scs
+imwrite(Bin_Nc(:,:,iter),fullfile(answer{7},'r2',currentfilename),'WriteMode','append', 'Compression','none');
+end
+CC_nc = bwconncomp(Bin_Nc,26);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%Saving the file excel file%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Att_Nuc_C1 = regionprops3(CC_nc, Channels(:,:,:,1),"Volume","MeanIntensity");
+Att_Nuc_C2 = regionprops3(CC_nc, Channels(:,:,:,2),"Volume","MeanIntensity");
+writematrix(Att_Nuc_C1.MeanIntensity,sprintf('%s/%s.xlsx',answer{8},answer{11}),'Range',Range2,'Sheet',answer{10});
+writematrix(Att_Nuc_C2.MeanIntensity,sprintf('%s/%s.xlsx',answer{8},answer{12}),'Range',Range2,'Sheet',answer{10});
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+end
