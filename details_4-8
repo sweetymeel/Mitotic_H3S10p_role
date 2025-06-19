@@ -1,0 +1,75 @@
+#Performed by Sweety Meel
+
+4. Categorization of interphase A domains and TADs based on mitotic H3S10p levels (Fig. 2, S2)
+
+Generation of bigwig files:
+Using deeptools bamCoverage defaults (with --normalizeUsing RPGC --effectiveGenomeSize 2685511504)
+
+Generation of bed files:
+Using standard HOMER Hi-C analysis pipeline
+TADs called using findTADsAndLoops.pl were used (Islam et al., 2023). Compartments were called in this study using HOMER runHiCpca.pl and findHiCCompartments.pl commands (from published HiC: Abramo et al., 2019).
+
+Categorisation of A domains based on mitotic H3S10p signal:
+
+Using deeptools multiBigwigSummary 
+
+multiBigwigSummary BED-file --numberOfProcessors 3 --outFileName H3S10p_at_A_domains_matrix --bwfiles Asyn_H3S10p.bigwig Mit_H3S10p.bigwig --outRawCounts Mit_H3S10p_at_A_domains_score-file --BED A_domains.bed
+
+A domains were sorted on the basis of decreasing Mit_H3S10p signal from the Mit_H3S10p_at_A_domains_score-file obtained from above code.
+(Output 3 files: High-, medium- and low- Mit_H3S10p_at_A_domains) used for further analyses and plotting.
+
+Categorisation of TADs based on mitotic H3S10p signal:
+TADs were intersected with the three categories of A domains to obtain 3 output files:  High-, medium- and low- Mit_H3S10p_TADs. These were then used for further analyses and plotting.
+
+5. Strength and activity calculation for A domains and TADs (Fig. 2, S2)
+
+Bigwig files:
+From ENCODE or NCBI GEO
+
+Generation of score files:
+multiBigwigSummary BED-file --numberOfProcessors 3 --outFileName <output> --bwfiles <insulation or histone modification bigwigs> --outRawCounts <score-file> --BED <A domain or TAD bed file>
+Output files obtained were used for plotting using R.
+
+6. Chromatin compaction in A domains and TADs (Fig. 4, S5)
+
+A)	APA plots (for TADs)
+
+Generation of .mcool files:
+.hic files were downloaded from 4DN and converted to .mcool files
+
+Generation of APA plots:
+
+coolpup.py asyn_25kb.cool <respective-TAD file> --nshifts 10 --rescale --local --unbalanced --coverage_norm --rescale_size 87 --outname <respective-output file>
+
+plotpup.py mit_25kb_high_mit_s10p_hg38 mit_25kb_low_mit_s10p_hg38 mit_25kb_high_mit_ac_hg38 mit_25kb_low_mit_ac_hg38 mit_25kb_random_hg38 --n_cols 5 --col_names highs,lows,higha,lowa,ran --cmap 'Oranges' --scale log --enrichment 0 --dpi 600 --output APA-plot
+
+B)	Log2DLR plots (for TADs and A domains)
+
+Generation of .DLR.bedGraph files:
+Using standard HOMER Hi-C analysis pipeline; particularly, using the TagDir files to calculate the distal-to-local log2 ratio (DLR)
+
+Used the .bedGraph files as bigwig for multiBiwigSummary with TADs and A domains as input .bed files
+Output files obtained were used for plotting using R.
+
+C)	H3 levels (for A domains)
+
+multiBigwigSummary BED-file --numberOfProcessors 3 --outFileName H3_at_A_domains.matrix --bwfiles <H3 bigwigs in S, A and D lines> --outRawCounts H3_at_A_domains-score-file --BED <A domain bed file>
+Output files obtained were used for plotting using R.
+
+
+7. Analysis and visualisation of ChIP-seq, RNA-seq and ATAC-seq
+
+Generation of heatmaps matrix files:
+Using deepTools computeMatrix
+
+Categorisation and scoring:
+Using deepTools multiBigwigSummary or bedtools map
+
+Visualization:
+Using deepTools plotProfile and plotHeatmap
+Using R ggplot
+
+8. Chromosome compaction in metaphase spreads (Fig. 4)
+
+Metaphase spread .tiff files were cropped with a standard rectangular ROI (region of interest) such that each rectangle had chromosomes dropped from a single mitotic cell. The individual images were processed in imageJ and DAPI channel was binarised. This was followed by %Area calculation for each ROI. The inverse of %Area was used as a proxy for chromosome compaction of a single metaphase spread. 10 such spreads were taken from each replicate for each line.
+
