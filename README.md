@@ -4,7 +4,7 @@ Abstract: Mitotic chromosomes lose interphase-specific genome organization and t
 *Codes and details made available for the following analyses*
 1.	Calling of H3S10p regions and domains
 2.	Image analysis for mean intensity
-3.	SNP calling from ChIP-seq and RNA-seq
+3.	Allele-specific enrichment
 4.	Categorization of interphase A domains and TADs based on mitotic H3S10p levels
 5.	Strength and activity calculation for A domains and TADs
 6.	Chromatin compaction in A domains and TADs
