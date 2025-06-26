@@ -1,0 +1,8 @@
+# Performed by Anurag Kumar Singh
+# Allele-specific enrichment
+#ASE read counter for HeLa H3S10p data, only for chr8
+(gatk) root@a586f8bc8b06:/gatk/my_data/incubator/aks/sweety/process/rg# for item in *_chr8.bam; do echo
+$item; gatk ASEReadCounter -R /gatk/my_data/incubator/aks/hg19/hg19.fa -I $item -V
+/gatk/my_data/incubator/aks/hela_haplotype/dataset/hela_variants_chr_8_fil_grch37_chrAdd.vcf -O
+../gatk_ase/$(basename $item .bam)_gatkASE_counter.tsv --min-mapping-quality 20 --min-base-quality 10;
+done
